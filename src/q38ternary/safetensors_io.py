@@ -32,6 +32,25 @@ class ShardIndex:
         self._single = single if single.is_file() else None
         self._open_shards: dict[str, Any] = {}
         self._layer_cache: dict[int, dict[str, np.ndarray]] = {}
+        self._framework = self._select_framework()
+
+    @staticmethod
+    def _select_framework() -> str:
+        try:
+            import torch  # noqa: F401
+
+            return "pt"
+        except ImportError:
+            pass
+        try:
+            import ml_dtypes  # noqa: F401
+
+            return "np"
+        except ImportError as exc:
+            raise RuntimeError(
+                "Loading BF16 safetensors needs torch or ml_dtypes. "
+                "Run scripts/bootstrap.ps1."
+            ) from exc
 
     def tensor_names(self) -> list[str]:
         if self.weight_map:
@@ -40,7 +59,7 @@ class ShardIndex:
         from safetensors import safe_open
 
         assert self._single is not None
-        with safe_open(str(self._single), framework="np") as handle:
+        with safe_open(str(self._single), framework=self._framework) as handle:
             return list(handle.keys())
 
     def shard_for(self, name: str) -> Path:
@@ -59,21 +78,34 @@ class ShardIndex:
         if handle is None:
             from safetensors import safe_open
 
-            handle = safe_open(key, framework="np")
+            handle = safe_open(key, framework=self._framework)
             self._open_shards[key] = handle
         return handle
 
     def load_tensor(self, name: str) -> np.ndarray:
         shard = self.shard_for(name)
         tensor = self._handle(shard).get_tensor(name)
-        return np.asarray(tensor)
+        if hasattr(tensor, "detach"):
+            import torch
+
+            cpu = tensor.detach().cpu()
+            if cpu.dtype in (torch.bfloat16, torch.float16):
+                cpu = cpu.to(dtype=torch.float32)
+            array = cpu.numpy()
+        else:
+            array = np.asarray(tensor)
+            if str(array.dtype) in {"bfloat16", "torch.bfloat16", "float16"}:
+                array = array.astype(np.float32, copy=False)
+        return np.ascontiguousarray(array)
 
     def layer_tensor_names(self, layer_index: int) -> list[str]:
-        suffixes = (
-            f"layers.{layer_index}.",
-            f"layers.{layer_index}/",
+        # Do not substring-match "layers.0." — that also hits mtp.layers.0.*.
+        prefixes = (
+            f"model.language_model.layers.{layer_index}.",
+            f"language_model.layers.{layer_index}.",
+            f"model.layers.{layer_index}.",
         )
-        return [name for name in self.tensor_names() if any(s in name for s in suffixes)]
+        return [name for name in self.tensor_names() if name.startswith(prefixes)]
 
     def load_layer(self, layer_index: int) -> dict[str, np.ndarray]:
         if layer_index in self._layer_cache:

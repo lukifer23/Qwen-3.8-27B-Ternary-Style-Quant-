@@ -132,6 +132,18 @@ def _stage_inspect_architecture(cfg: AppConfig, **_: Any) -> dict[str, Any]:
     }
 
 
+def _stage_pilot_calibration(cfg: AppConfig, **_: Any) -> dict[str, Any]:
+    from q38ternary.calibration import build_split
+
+    calib = build_split(cfg, tier="pilot", holdout=False)
+    hold = build_split(cfg, tier="pilot", holdout=True)
+    return {
+        "calibration_sequences": calib["sequences"],
+        "holdout_sequences": hold["sequences"],
+        "length": calib["length"],
+    }
+
+
 def _stage_download_model(cfg: AppConfig, **kwargs: Any) -> dict[str, Any]:
     from q38ternary.hf import download_config, download_weights, read_config_json, verify_teacher_identity
 
@@ -153,6 +165,7 @@ STAGE_HANDLERS: dict[str, Callable[..., dict[str, Any]]] = {
     "pin_revisions": _stage_pin_revisions,
     "download_model": _stage_download_model,
     "inspect_architecture": _stage_inspect_architecture,
+    "pilot_calibration": _stage_pilot_calibration,
 }
 
 # Registered by later slices as they land. Missing names in AUTO_STAGES

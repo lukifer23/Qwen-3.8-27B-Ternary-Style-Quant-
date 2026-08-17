@@ -16,6 +16,7 @@ dependencies = [
     "einops",
     "gguf",
     "huggingface_hub",
+    "ml_dtypes",
     "lm-eval",
     "numpy",
     "pandas",

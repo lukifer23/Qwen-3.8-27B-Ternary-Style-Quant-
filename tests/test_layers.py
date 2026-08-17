@@ -84,3 +84,18 @@ def test_shard_loader_roundtrip(tmp_path: Path) -> None:
         assert 0 not in store._layer_cache
         other = store.load_tensor("model.layers.1.bar.weight")
         np.testing.assert_array_equal(other, t1)
+
+
+def test_layer_names_do_not_include_mtp() -> None:
+    names = [
+        "model.language_model.layers.0.mlp.up_proj.weight",
+        "mtp.layers.0.mlp.up_proj.weight",
+        "model.language_model.layers.10.mlp.up_proj.weight",
+    ]
+    prefixes = (
+        "model.language_model.layers.0.",
+        "language_model.layers.0.",
+        "model.layers.0.",
+    )
+    matched = [n for n in names if n.startswith(prefixes)]
+    assert matched == ["model.language_model.layers.0.mlp.up_proj.weight"]
