@@ -22,10 +22,16 @@ on conversion infrastructure and reproducible experiments:
 - Prism-style Q2 packing and round-trip tests
 - calibration and holdout dataset configuration
 
-The full reconstruction optimizer, production GGUF writer, CUDA runtime build,
-quality evaluation, and final model selection are planned next. A model file
-is not a successful result until size, memory, runtime, and quality are
-measured together.
+Experimental local work is now extending this baseline with teacher activation
+caches, layer-level scales-only reconstruction, persistent checkpoints, and a
+Prism-oriented GGUF assembly path. These are not yet a released conversion or
+deployment result: they require the local teacher weights, substantial disk
+space, CUDA, and further validation on disjoint evaluation data.
+
+The full 64-layer reconstruction, production GGUF validation, CUDA runtime
+build, quality evaluation, and final model selection remain in progress. A
+model file is not a successful result until size, memory, runtime, and quality
+are measured together.
 
 ## Scope and research boundary
 
@@ -65,6 +71,10 @@ Configuration, tokenizer, and inventory preparation can be run with:
 ```powershell
 python scripts/download_sources.py --skip-clone
 ```
+
+Layer reconstruction scripts are experimental and are intentionally not part
+of the minimal public quick start. Run them only after the hardware checks,
+teacher download, calibration, and cache requirements have been verified.
 
 The full gated workflow is the eventual path:
 
