@@ -18,29 +18,14 @@ deep:
 default_tier: pilot
 
 sources:
-  - name: fineweb_edu
-    repo: HuggingFaceFW/fineweb-edu
-    config: default
-    split: train
-    text_field: text
-    purpose: encyclopedic
-    target_share: 0.18
-
-  - name: wikitext
-    repo: wikitext
-    config: wikitext-103-raw-v1
-    split: train
-    text_field: text
-    purpose: general_prose
-    target_share: 0.10
-
   - name: ultrachat
     repo: HuggingFaceH4/ultrachat_200k
     config: default
     split: train_sft
     text_field: messages
     purpose: multi_turn_chat
-    target_share: 0.12
+    max_rows: 2500
+    target_share: 0.55
 
   - name: gsm8k_train
     repo: openai/gsm8k
@@ -49,6 +34,28 @@ sources:
     text_field: question
     aux_fields: [answer]
     purpose: mathematics
+    max_rows: 4000
+    target_share: 0.12
+
+  - name: fineweb_edu
+    repo: HuggingFaceFW/fineweb-edu
+    config: default
+    split: train
+    text_field: text
+    purpose: encyclopedic
+    stream: true
+    optional: true
+    max_rows: 400
+    target_share: 0.18
+
+  - name: wikitext
+    repo: Salesforce/wikitext
+    config: wikitext-103-raw-v1
+    split: train
+    text_field: text
+    purpose: general_prose
+    optional: true
+    max_rows: 4000
     target_share: 0.10
 
   - name: open_r1_math
@@ -57,6 +64,8 @@ sources:
     split: train
     text_field: problem
     purpose: reasoning
+    optional: true
+    max_rows: 2000
     target_share: 0.08
 
   - name: starcoderdata_smol
@@ -65,7 +74,8 @@ sources:
     split: train
     text_field: content
     purpose: coding
-    target_share: 0.12
+    max_rows: 2500
+    target_share: 0.35
 
   - name: oss_instruct
     repo: ise-uiuc/Magicoder-OSS-Instruct-75K
@@ -73,6 +83,8 @@ sources:
     split: train
     text_field: problem
     purpose: debugging
+    optional: true
+    max_rows: 2000
     target_share: 0.06
 
   - name: jsonalize
@@ -90,6 +102,8 @@ sources:
     split: train
     text_field: query
     purpose: tool_calls
+    optional: true
+    max_rows: 2000
     target_share: 0.10
 
   - name: if_train
@@ -107,30 +121,43 @@ sources:
     split: train
     text_field: report
     purpose: longer_documents
+    optional: true
+    max_rows: 500
     target_share: 0.05
 
 # Holdout is a different split / different dataset. Never optimize on these.
 holdout:
   - name: wikitext_test
-    repo: wikitext
+    repo: Salesforce/wikitext
     config: wikitext-103-raw-v1
     split: test
+    text_field: text
+    optional: true
+    max_rows: 2000
     purpose: general_lm_perplexity
 
   - name: gsm8k_test
     repo: openai/gsm8k
     config: main
     split: test
+    text_field: question
+    aux_fields: [answer]
+    max_rows: 1319
     purpose: math
 
   - name: humaneval
     repo: openai/openai_humaneval
     config: openai_humaneval
     split: test
+    text_field: prompt
+    max_rows: 164
     purpose: code_generation
 
   - name: mbpp
     repo: google-research-datasets/mbpp
     config: sanitized
     split: test
+    text_field: text
+    optional: true
+    max_rows: 500
     purpose: code_generation

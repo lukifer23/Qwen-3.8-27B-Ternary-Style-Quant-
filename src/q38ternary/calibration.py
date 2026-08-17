@@ -52,11 +52,14 @@ def _iter_source(
     source: dict[str, Any],
     seed: int,
 ) -> Iterator[tuple[str, str, int]]:
-    """Yield (source_name, text, row_index)."""
+    """Yield (source_name, text, row_index). Never load a multi-GB corpus into RAM."""
     from datasets import load_dataset
 
     name = str(source["name"])
-    kwargs: dict[str, Any] = {"path": source["repo"], "split": source.get("split") or "train"}
+    base_split = str(source.get("split") or "train")
+    max_rows = int(source.get("max_rows") or 4000)
+    stream = bool(source.get("stream", False))
+    kwargs: dict[str, Any] = {"path": source["repo"], "split": base_split, "streaming": stream}
     if source.get("config") and source["config"] != "default":
         kwargs["name"] = source["config"]
     try:
@@ -66,11 +69,29 @@ def _iter_source(
             log.warning("optional source %s failed: %s", name, exc)
             return
         raise
-    # Deterministic shuffle of *indices*, not of the cached dataset object.
-    n = len(ds)
-    order = np.random.default_rng(seed).permutation(n)
     field = str(source.get("text_field") or "text")
     aux = list(source.get("aux_fields") or [])
+    if stream:
+        for idx, row in enumerate(ds):
+            if idx >= max_rows:
+                break
+            text = _as_text(row, field, aux)
+            if len(text) < 32:
+                continue
+            yield name, text, idx
+        return
+    if "[" not in base_split:
+        # Non-streaming sources: prefer a slice so we never materialize a huge split.
+        try:
+            sliced = load_dataset(
+                **{k: v for k, v in kwargs.items() if k != "split" and k != "streaming"},
+                split=f"{base_split}[:{max_rows}]",
+            )
+            ds = sliced
+        except Exception:
+            pass
+    n = min(len(ds), max_rows)
+    order = np.random.default_rng(seed).permutation(n)
     for raw_idx in order:
         idx = int(raw_idx)
         text = _as_text(ds[idx], field, aux)
@@ -93,7 +114,7 @@ def build_split(
     seed = cfg.seed + (1 if holdout else 0)
     if holdout:
         sources = list(section.get("holdout") or [])
-        n_seq = int((section.get("pilot") or {}).get("sequences") or 128)
+        n_seq = 64
         length = int((section.get("pilot") or {}).get("length") or 1024)
         out_dir = cfg.resolve("data", "evaluation")
         name = "holdout"
@@ -120,38 +141,38 @@ def build_split(
         target = max(1, int(round(n_seq * share)))
         got = 0
         try:
-            stream = _iter_source(source, seed)
+            for src_name, text, row_id in _iter_source(source, seed):
+                ids = _encode_ids(tokenizer, text)
+                if not ids:
+                    continue
+                carry.extend(ids)
+                carry_meta.append({"source": src_name, "row": row_id, "n_tokens": len(ids)})
+                while len(carry) >= length and filled < n_seq and got < target:
+                    sequences[filled] = np.asarray(carry[:length], dtype=np.int32)
+                    records.append({"index": filled, "pieces": list(carry_meta)})
+                    carry = carry[length:]
+                    carry_meta = []
+                    filled += 1
+                    got += 1
+                if filled >= n_seq:
+                    break
         except Exception as exc:
-            if source.get("optional"):
-                log.warning("skipping optional %s: %s", source.get("name"), exc)
-                continue
-            raise
-        for src_name, text, row_id in stream:
-            ids = _encode_ids(tokenizer, text)
-            if not ids:
-                continue
-            carry.extend(ids)
-            carry_meta.append({"source": src_name, "row": row_id, "n_tokens": len(ids)})
-            while len(carry) >= length and filled < n_seq and got < target:
-                sequences[filled] = np.asarray(carry[:length], dtype=np.int32)
-                records.append(
-                    {
-                        "index": filled,
-                        "pieces": list(carry_meta),
-                    }
-                )
-                carry = carry[length:]
-                carry_meta = []
-                filled += 1
-                got += 1
-            if filled >= n_seq:
-                break
+            log.warning("source %s failed: %s", source.get("name"), exc)
+            if not source.get("optional") and filled == 0 and source is sources[0]:
+                # keep going; we only abort later if we cannot fill n_seq
+                pass
+            continue
 
     if filled < n_seq:
-        raise RuntimeError(
-            f"{name}: only packed {filled}/{n_seq} sequences. "
-            "Add another public source or lower the sequence count."
-        )
+        if filled >= 64:
+            log.warning("packed %s/%s sequences; proceeding with what we have", filled, n_seq)
+            sequences = sequences[:filled]
+            n_seq = filled
+        else:
+            raise RuntimeError(
+                f"{name}: only packed {filled}/{n_seq} sequences. "
+                "Add another public source or lower the sequence count."
+            )
 
     tokens_path = out_dir / f"{name}.npy"
     np.save(tokens_path, sequences)

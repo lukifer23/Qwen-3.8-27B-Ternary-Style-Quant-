@@ -13,13 +13,15 @@ from q38ternary.utils.manifest import write_manifest
 
 
 class ActivationCache:
-    def __init__(self, directory: Path, *, layer: int, meta: dict[str, Any]) -> None:
+    def __init__(self, directory: Path, *, layer: int, meta: dict[str, Any], tag: str = "") -> None:
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.layer = int(layer)
+        self.tag = tag
         self.meta = dict(meta)
         self._index: list[dict[str, Any]] = []
-        self._index_path = self.directory / f"layer_{self.layer:03d}.index.json"
+        suffix = f"_{tag}" if tag else ""
+        self._index_path = self.directory / f"layer_{self.layer:03d}{suffix}.index.json"
 
     def write_chunk(
         self,
@@ -28,7 +30,8 @@ class ActivationCache:
         *,
         sample_ids: list[int],
     ) -> Path:
-        path = self.directory / f"layer_{self.layer:03d}_chunk_{chunk_id:05d}.npy"
+        suffix = f"_{self.tag}" if self.tag else ""
+        path = self.directory / f"layer_{self.layer:03d}{suffix}_chunk_{chunk_id:05d}.npy"
         array = np.ascontiguousarray(activations.astype(np.float16, copy=False))
         np.save(path, array)
         record = {
