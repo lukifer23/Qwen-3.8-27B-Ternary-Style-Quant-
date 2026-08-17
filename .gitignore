@@ -18,7 +18,7 @@ venv/
 # uv
 .uv/
 
-# Weights, caches, and other large artifacts — never commit
+# Weights, caches, and other large artifacts - never commit
 models/
 cache/
 checkpoints/
@@ -31,19 +31,22 @@ checkpoints/
 *.npz
 *.h5
 
-# Calibration/eval corpora stay local
+# Calibration/evaluation corpora stay local
 data/calibration/*
 !data/calibration/.gitkeep
-!data/calibration/manifest.json
 data/evaluation/*
 !data/evaluation/.gitkeep
 
-# Runtime
+# Generated runtime state and machine-specific reports
 artifacts/logs/
 artifacts/plots/
 artifacts/*.json
-!artifacts/reports/
+artifacts/*.jsonl
+artifacts/*.txt
 artifacts/progress.json
+artifacts/reports/*
+!artifacts/reports/.gitkeep
+!artifacts/reports/01_model_inventory.md
 
 # Third-party checkouts are pinned by versions.json only
 third_party/*

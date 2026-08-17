@@ -1,76 +1,95 @@
-# qwen38-ternary
+# Qwen 3.8 27B Ternary-Style Quantization
 
-Activation-aware ternary / mixed-bit compression of official
-[`Qwen/Qwen3.8-27B`](https://huggingface.co/Qwen/Qwen3.8-27B) so the language
-model can run entirely on a 16 GB NVIDIA RTX 2000-class GPU through
-llama.cpp-compatible CUDA inference.
+Research code for activation-aware ternary and mixed-bit compression of the
+official [Qwen/Qwen3.8-27B](https://huggingface.co/Qwen/Qwen3.8-27B) language
+model.
 
-Target path:
+The deployment target is a text-only model that can run on a 16 GB NVIDIA
+GPU through a llama.cpp-compatible CUDA runtime. The working size target is
+approximately 7-9 GB, measured as deployed model size rather than an
+information-theoretic bit count.
 
-`Qwen3.8-27B BF16 (~54 GB) → activation-aware ternary / mixed-bit → ~7–9 GB`
+## Project status
 
-## What this is — and what it is not
+This is an active research prototype. The public repository currently focuses
+on conversion infrastructure and reproducible experiments:
 
-PrismML has publicly released ternary models, GGUFs, runtime kernels, a
-llama.cpp fork, packing formats, and benchmarks. This repository is a
-**clean research implementation inspired by that public representation and
-runtime**. It is **not** a reproduction of PrismML’s proprietary
-quality-recovery / training recipe, and it does not claim to be.
+- Qwen3.8 architecture discovery and tensor inventory
+- hardware and disk-safety checks
+- shard-aware safetensors loading
+- BF16 streaming of one language layer at a time
+- ternary initializers, activation-weighted scaling, and STE primitives
+- Prism-style Q2 packing and round-trip tests
+- calibration and holdout dataset configuration
 
-Ideal information content of `{-1,0,+1}` plus a group-128 FP16 scale is about
-**1.71 bits/weight** (~5.9 GB). Deployed GGUF packing uses 2-bit slots
-(~2.125 bits/weight, ~7.2 GB). Those numbers are not interchangeable. Reports
-in this repo always list **deployed** file size, resident weight memory, and
-runtime VRAM separately.
+The full reconstruction optimizer, production GGUF writer, CUDA runtime build,
+quality evaluation, and final model selection are planned next. A model file
+is not a successful result until size, memory, runtime, and quality are
+measured together.
 
-## Hardware target
+## Scope and research boundary
 
-Designed for a Windows 11 workstation: 24-core CPU, 64 GB RAM, ~16 GB CUDA
-GPU, NVMe. The pipeline measures the actual machine at startup and refuses
-to start a large download if free disk is below 180 GB.
+This is a clean implementation inspired by public ternary representations,
+packing formats, and runtime code. It is not a reproduction of PrismML's
+proprietary quality-recovery or training recipe, and it does not claim access
+to that recipe.
 
-Do not use Docker. WSL2 is optional and never required.
+The initial target is text inference. Vision weights, multimodal processing,
+and MTP components are inventoried but excluded from the first deployment
+path.
 
-There is no admin interface and no authentication. This is a local CLI
-research pipeline.
+## Public repository policy
+
+Large or machine-local files stay out of Git. In particular, do not commit:
+
+- BF16 or quantized model weights, GGUFs, or calibration arrays
+- Hugging Face caches, checkpoints, generated logs, or progress files
+- local virtual environments or machine-specific hardware snapshots
+- third-party source checkouts; record their commits in `third_party/versions.json`
+
+Download the teacher model into `models/source/` on the local machine when a
+workflow requires it. The model files are intentionally covered by
+`.gitignore`.
 
 ## Quick start
 
+On the supported Windows workstation:
+
 ```powershell
 .\scripts\bootstrap.ps1
-python scripts\run_pipeline.py --mode detect
+python scripts/run_pipeline.py --mode detect
 ```
 
-Full gated run (stops on a failed quality gate):
+Configuration, tokenizer, and inventory preparation can be run with:
+
+```powershell
+python scripts/download_sources.py --skip-clone
+```
+
+The full gated workflow is the eventual path:
 
 ```powershell
 .\scripts\run-all.ps1
 ```
 
-Other entry points, once later slices are in place:
-
-```powershell
-python scripts\run_pipeline.py --mode pilot
-python scripts\run_pipeline.py --mode reconstruct --target hybrid --budget-gb 8.5
-python scripts\run_pipeline.py --mode reconstruct --target ternary
-```
-
-## Reproducible path
-
-`bootstrap → quantize → pack → benchmark`
-
-`--mode auto` walks the 25 stages in `Project_Plan.md` and **stops** when a
-gate fails (streaming teacher mismatch, reconstruction that does not beat
-naive ternary, GGUF round-trip failure, gibberish generation). It will not
-burn days on a broken stage.
+It is intentionally staged and stops at a failed quality or safety gate. Do
+not start a full weight download or reconstruction until the local disk,
+system memory, CUDA, and active-GPU checks pass.
 
 ## Layout
 
-Logic lives once under `src/q38ternary/`. Files in `scripts/` are thin CLIs.
-Configuration is the six YAML files in `config/`. Large weights, caches, and
-GGUFs are gitignored.
+| Path | Purpose |
+|---|---|
+| `src/q38ternary/` | Reusable conversion, quantization, packing, and runtime code |
+| `scripts/` | Thin command-line entry points |
+| `config/` | Project, hardware, calibration, quantization, reconstruction, and evaluation settings |
+| `tests/` | CPU-safe correctness and packing tests |
+| `artifacts/` | Small, shareable architecture and inventory summaries |
+| `models/`, `cache/`, `checkpoints/`, `data/` | Local-only generated data and model assets |
+| `third_party/` | Local checkouts of pinned external projects |
+| `Project_Plan.md` | Detailed research plan and acceptance criteria |
 
 ## License
 
-Apache-2.0 for this repository. Third-party checkouts keep their own licenses;
-pin exact commits in `third_party/versions.json` and preserve attribution.
+This repository is Apache-2.0. Third-party checkouts retain their own
+licenses and attribution requirements.
