@@ -5,6 +5,23 @@ step_range: [100, 300]
 progressive: true
 automatic_oom_recovery: true
 
+# 16 GB GPU / 64 GB RAM. These are hard rules, not preferences.
+memory:
+  keep_weights_bf16: true
+  never_materialize_embed_table: true
+  never_store_all_layer_activations_in_ram: true
+  activation_dtype: float16
+  cache_only_current_layer: true
+  # Pilot activations on disk: 512 × 1024 × 5120 × 2 ≈ 5.4 GB per layer.
+  # Do not cache all 64 layers (that would be ~344 GB and is unnecessary
+  # for teacher-input fitting).
+  max_cached_layers: 2
+  # Reconstruction starts at scales-only. Full-layer AdamW is ~4.6 GB
+  # (FP32 latent + two moments) plus activations — only escalate if needed.
+  default_level: scales_only
+  train_one_matrix_at_a_time: true
+  last_token_logits_only: true
+
 optimizer:
   name: adamw
   learning_rate: 1.0e-3

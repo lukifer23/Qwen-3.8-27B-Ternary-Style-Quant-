@@ -83,20 +83,62 @@ class ShardIndex:
         return handle
 
     def load_tensor(self, name: str) -> np.ndarray:
+        """Load one tensor to NumPy.
+
+        BF16/FP16 stay 2-byte. We do **not** promote to FP32 here — that
+        doubled the embed table from 2.4 GB to 5.1 GB and would blow the
+        52 GB RAM budget once a layer copy sat next to it.
+        """
         shard = self.shard_for(name)
         tensor = self._handle(shard).get_tensor(name)
         if hasattr(tensor, "detach"):
             import torch
 
             cpu = tensor.detach().cpu()
-            if cpu.dtype in (torch.bfloat16, torch.float16):
-                cpu = cpu.to(dtype=torch.float32)
-            array = cpu.numpy()
+            if cpu.dtype == torch.bfloat16:
+                # NumPy has no bf16 in the default build; float16 keeps the 2-byte width.
+                array = cpu.to(dtype=torch.float16).numpy()
+            else:
+                array = cpu.numpy()
         else:
             array = np.asarray(tensor)
-            if str(array.dtype) in {"bfloat16", "torch.bfloat16", "float16"}:
-                array = array.astype(np.float32, copy=False)
+            if str(array.dtype) in {"bfloat16", "torch.bfloat16"}:
+                array = array.astype(np.float16, copy=False)
         return np.ascontiguousarray(array)
+
+    def load_tensor_torch(self, name: str, *, device: str = "cpu"):
+        """Load one tensor as a torch tensor, keeping BF16. No NumPy copy."""
+        import torch
+
+        shard = self.shard_for(name)
+        tensor = self._handle(shard).get_tensor(name)
+        if hasattr(tensor, "detach"):
+            return tensor.detach().to(device=device)
+        array = np.asarray(tensor)
+        return torch.from_numpy(np.ascontiguousarray(array)).to(device=device)
+
+    def gather_rows_torch(self, name: str, row_ids: np.ndarray, *, device: str = "cpu"):
+        """Gather embedding/LM-head rows without materializing the 2.4 GB table."""
+        import torch
+
+        shard = self.shard_for(name)
+        handle = self._handle(shard)
+        ids = np.ascontiguousarray(row_ids)
+        flat = ids.reshape(-1)
+        unique, inverse = np.unique(flat, return_inverse=True)
+        sl = handle.get_slice(name)
+        # safetensors slice supports contiguous ranges; gather unique ids in one pass
+        # by stacking per-id rows. Unique tokens in a 1–8 sequence is tiny.
+        rows = []
+        for idx in unique.tolist():
+            row = sl[int(idx) : int(idx) + 1]
+            if hasattr(row, "detach"):
+                rows.append(row.detach())
+            else:
+                rows.append(torch.from_numpy(np.ascontiguousarray(row)))
+        table = torch.cat(rows, dim=0).to(device=device)
+        gathered = table[torch.as_tensor(inverse, device=table.device)]
+        return gathered.reshape(*ids.shape, table.shape[-1])
 
     def layer_tensor_names(self, layer_index: int) -> list[str]:
         # Do not substring-match "layers.0." — that also hits mtp.layers.0.*.
