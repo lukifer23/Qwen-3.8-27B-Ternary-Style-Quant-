@@ -1,0 +1,26 @@
+# Conservative safety budgets. detect_hardware.py overwrites the
+# `detected` block with measurements from this machine. Do not raise
+# these limits to fill the GPU or the pagefile.
+
+limits:
+  gpu_memory_limit_gb: 14.0
+  system_memory_limit_gb: 52.0
+  minimum_free_disk_gb: 180
+  preferred_free_disk_gb: 250
+  gpu_temp_pause_c: 87
+  # Never change power limits or clocks without explicit user permission.
+
+detected:
+  collected_at: null
+  gpu_name: null
+  gpu_memory_total_gb: null
+  gpu_memory_used_gb: null
+  driver_version: null
+  cuda_driver_version: null
+  cpu_name: null
+  cpu_cores: null
+  system_memory_total_gb: null
+  disk_free_gb: null
+  torch_version: null
+  torch_cuda: null
+  torch_cuda_available: null

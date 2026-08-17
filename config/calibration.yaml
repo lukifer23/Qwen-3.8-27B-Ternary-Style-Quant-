@@ -1,0 +1,136 @@
+seed: 42
+
+# Calibration and evaluation must never share rows.
+# Only public Hugging Face datasets that do not require auth.
+
+pilot:
+  sequences: 512
+  length: 1024
+
+standard:
+  sequences: 2048
+  length: 2048
+
+deep:
+  sequences: 4096
+  length: 2048
+
+default_tier: pilot
+
+sources:
+  - name: fineweb_edu
+    repo: HuggingFaceFW/fineweb-edu
+    config: default
+    split: train
+    text_field: text
+    purpose: encyclopedic
+    target_share: 0.18
+
+  - name: wikitext
+    repo: wikitext
+    config: wikitext-103-raw-v1
+    split: train
+    text_field: text
+    purpose: general_prose
+    target_share: 0.10
+
+  - name: ultrachat
+    repo: HuggingFaceH4/ultrachat_200k
+    config: default
+    split: train_sft
+    text_field: messages
+    purpose: multi_turn_chat
+    target_share: 0.12
+
+  - name: gsm8k_train
+    repo: openai/gsm8k
+    config: main
+    split: train
+    text_field: question
+    aux_fields: [answer]
+    purpose: mathematics
+    target_share: 0.10
+
+  - name: open_r1_math
+    repo: open-r1/OpenR1-Math-220k
+    config: default
+    split: train
+    text_field: problem
+    purpose: reasoning
+    target_share: 0.08
+
+  - name: starcoderdata_smol
+    repo: bigcode/the-stack-smol
+    config: default
+    split: train
+    text_field: content
+    purpose: coding
+    target_share: 0.12
+
+  - name: oss_instruct
+    repo: ise-uiuc/Magicoder-OSS-Instruct-75K
+    config: default
+    split: train
+    text_field: problem
+    purpose: debugging
+    target_share: 0.06
+
+  - name: jsonalize
+    repo: json-data/json-repair
+    config: default
+    split: train
+    text_field: text
+    purpose: json
+    optional: true
+    target_share: 0.04
+
+  - name: xlam_tools
+    repo: Salesforce/xlam-function-calling-60k
+    config: default
+    split: train
+    text_field: query
+    purpose: tool_calls
+    target_share: 0.10
+
+  - name: if_train
+    repo: wyek1/instruction-following
+    config: default
+    split: train
+    text_field: instruction
+    purpose: instruction_following
+    optional: true
+    target_share: 0.05
+
+  - name: govreport
+    repo: ccdv/govreport-summarization
+    config: default
+    split: train
+    text_field: report
+    purpose: longer_documents
+    target_share: 0.05
+
+# Holdout is a different split / different dataset. Never optimize on these.
+holdout:
+  - name: wikitext_test
+    repo: wikitext
+    config: wikitext-103-raw-v1
+    split: test
+    purpose: general_lm_perplexity
+
+  - name: gsm8k_test
+    repo: openai/gsm8k
+    config: main
+    split: test
+    purpose: math
+
+  - name: humaneval
+    repo: openai/openai_humaneval
+    config: openai_humaneval
+    split: test
+    purpose: code_generation
+
+  - name: mbpp
+    repo: google-research-datasets/mbpp
+    config: sanitized
+    split: test
+    purpose: code_generation

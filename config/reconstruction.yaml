@@ -1,0 +1,50 @@
+pilot_layers: [0, 3, 15, 31, 47, 63]
+sequence_length: 1024
+initial_steps: 150
+step_range: [100, 300]
+progressive: true
+automatic_oom_recovery: true
+
+optimizer:
+  name: adamw
+  learning_rate: 1.0e-3
+  lr_search: [1.0e-4, 3.0e-4, 1.0e-3, 3.0e-3, 5.0e-3]
+  weight_decay: 0.0
+  grad_clip: 1.0
+  mixed_precision: true
+
+# Cheapest method that hits the gate wins.
+levels:
+  - scales_only
+  - scales_and_thresholds
+  - scales_thresholds_assignments
+  - latent_ste
+  - cross_block
+
+loss:
+  hidden_mse: 1.0
+  cosine: 0.1
+  intermediate: 0.1
+  logits_lambda: 0.0
+
+modes:
+  initial: teacher_input
+  refine: progressive_student
+
+oom:
+  catch: true
+  empty_cache: true
+  reduce_batch: true
+  retry: true
+  min_batch: 1
+
+sweep:
+  strategy: successive_halving
+  short_steps: 30
+  keep_top: 3
+
+recovery:
+  worst_k: [4, 8, 16]
+  extra_steps: 300
+  smaller_lr: 3.0e-4
+  escalate: [3bit, 4bit]

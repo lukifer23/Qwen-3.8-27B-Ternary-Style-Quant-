@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+.venv/
+venv/
+.env
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg
+
+# uv
+.uv/
+
+# Weights, caches, and other large artifacts — never commit
+models/
+cache/
+checkpoints/
+*.gguf
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.npz
+*.h5
+
+# Calibration/eval corpora stay local
+data/calibration/*
+!data/calibration/.gitkeep
+!data/calibration/manifest.json
+data/evaluation/*
+!data/evaluation/.gitkeep
+
+# Runtime
+artifacts/logs/
+artifacts/plots/
+artifacts/*.json
+!artifacts/reports/
+artifacts/progress.json
+
+# Third-party checkouts are pinned by versions.json only
+third_party/*
+!third_party/.gitkeep
+!third_party/versions.json
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local secrets
+.hf_token
+HF_TOKEN
+*.pem

@@ -1,0 +1,22 @@
+{
+  "llama.cpp": {
+    "url": "https://github.com/ggml-org/llama.cpp",
+    "path": "third_party/llama.cpp",
+    "commit": "d8df12ebc4592b55dcecf97a32953623d031efdc"
+  },
+  "prism-llama.cpp": {
+    "url": "https://github.com/PrismML-Eng/llama.cpp",
+    "path": "third_party/prism-llama.cpp",
+    "commit": "9ca265a57f85f2117942490f421f64a226dd9847"
+  },
+  "bonsai-demo": {
+    "url": "https://github.com/PrismML-Eng/Bonsai-demo",
+    "path": "third_party/bonsai-demo",
+    "commit": "70ae3e442c3e2f8c928b8dbe18b618bbd3365f62"
+  },
+  "auto-round": {
+    "url": "https://github.com/intel/auto-round",
+    "path": "third_party/auto-round",
+    "commit": "674377982561707cdc51db99cd8ff634369e20b7"
+  }
+}

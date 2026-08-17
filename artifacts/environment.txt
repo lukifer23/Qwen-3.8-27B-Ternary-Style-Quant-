@@ -1,0 +1,59 @@
+collected_at: 2026-08-17T18:27:26.963794+00:00
+host: HQ-Buyers-GRTYTK4
+os: Windows 10
+python: 3.11.15 (main, Jun 23 2026, 15:20:37) [MSC v.1944 64 bit (AMD64)]
+python_executable: C:\Users\LukeScaggs\Documents\Qwen 3.8 27b Trenary Quant\.venv\Scripts\python.exe
+
+=== toolchain ===
+python: Python 3.11.15
+git: git version 2.55.0.windows.3
+cmake: [WinError 2] The system cannot find the file specified
+nvcc: [WinError 2] The system cannot find the file specified
+uv: uv 0.11.32 (3010295ae 2026-07-23 x86_64-pc-windows-msvc)
+
+=== nvidia-smi ===
+Mon Aug 17 13:27:26 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 596.71                 Driver Version: 596.71         CUDA Version: 13.2     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                  Driver-Model | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA RTX 2000 Ada Gene...  WDDM  |   00000000:01:00.0 Off |                  Off |
+| 30%   32C    P8              3W /   70W |   14874MiB /  16380MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A           28244    C+G   ...ole\DellOptimizer.Systray.exe      N/A      |
+|    0   N/A  N/A           30864      C   ...-avx2-2.28.2\llama-server.exe      N/A      |
++-----------------------------------------------------------------------------------------+
+
+=== torch ===
+{
+  "importable": false,
+  "version": null,
+  "cuda_build": null,
+  "cuda_available": false,
+  "device_name": null,
+  "device_total_memory": null,
+  "error": "No module named 'torch'"
+}
+
+=== checks ===
+{
+  "ok": true,
+  "issues": [],
+  "warnings": [
+    "GPU already has 14.53 GB in use (16.00 GB total). Reconstruction will need that VRAM free. This process will not kill other GPU programs.",
+    "cmake is not on PATH. llama.cpp CUDA builds will need a compiler toolchain.",
+    "nvcc is not on PATH. llama.cpp CUDA builds will need the CUDA toolkit."
+  ],
+  "cuda_ready": false,
+  "disk_ok_for_download": true
+}

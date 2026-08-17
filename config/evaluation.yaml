@@ -1,0 +1,50 @@
+# Deterministic comparisons use temperature 0.
+# Behavior evals use Qwen's recommended settings and record them.
+
+sampling:
+  deterministic:
+    temperature: 0.0
+    top_p: 1.0
+    top_k: 0
+  thinking:
+    temperature: 1.0
+    top_p: 0.95
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 0.0
+    repetition_penalty: 1.0
+  instruct:
+    temperature: 0.7
+    top_p: 0.80
+    top_k: 20
+    min_p: 0.0
+    presence_penalty: 1.5
+    repetition_penalty: 1.0
+
+inference:
+  context_initial: 4096
+  context_ladder: [4096, 8192, 16384, 32768]
+  gpu_layers: -1
+  vision: false
+  mtp: false
+
+logits:
+  topk: [5, 10]
+
+functional:
+  reasoning_items: 80
+  long_generation_tokens: 2048
+
+baselines:
+  repo: unsloth/Qwen3.8-27B-GGUF
+  files:
+    iq4: Qwen3.8-27B-IQ4_XS.gguf
+    q3: Qwen3.8-27B-Q3_K_M.gguf
+    iq3: Qwen3.8-27B-UD-IQ3_XXS.gguf
+    iq2: Qwen3.8-27B-UD-IQ2_XXS.gguf
+
+success:
+  bronze: { size_gb: 9.0, retention: 0.85 }
+  silver: { size_gb: 8.5, retention: 0.90 }
+  gold: { size_gb: 7.5, retention: 0.93 }
+  aspirational: { size_gb: 7.2, retention: 0.95 }

@@ -1,0 +1,51 @@
+primary_scheme: ternary
+alphabet: [-1, 0, 1]
+group_size: 128
+scale_dtype: float16
+codes_dtype: packed2
+
+# Try cheapest first. Escalate only if the quality gate fails.
+initializers:
+  - absolute_threshold
+  - search_threshold
+  - activation_weighted
+  - hessian_diag   # optional; skip automatically if it does not fit
+
+search_threshold:
+  percentile_candidates: [0.0, 0.05, 0.10, 0.20, 0.30, 0.40, 0.50]
+  mean_abs_scalars: [0.0, 0.25, 0.5, 0.75, 1.0, 1.5]
+  std_scalars: [0.0, 0.25, 0.5, 0.75, 1.0]
+
+# v0.1 Hybrid (Model B)
+v01:
+  transformer_matrices: ternary_g128
+  embedding: q4
+  lm_head: q4
+  norms: fp16
+  small_state: fp16
+  vision: excluded
+  mtp: excluded
+  target_gb: 8.5
+
+# v0.2 full-language ternary (Model C) — only after v0.1 eval supports it
+v02:
+  embedding: ternary_g128
+  lm_head: ternary_g128
+  transformer_matrices: ternary_g128
+  norms: fp16
+  small_state: fp16
+  target_gb: 7.5
+
+# Special tensors stay higher precision unless a measurement says otherwise.
+keep_high_precision:
+  - token_embeddings
+  - lm_head
+  - norms
+  - deltanet_state
+  - deltanet_control
+  - biases
+  - mtp
+  - vision
+
+mixed_bit_budgets_gb: [7.25, 7.5, 8.0, 8.5, 9.0]
+mixed_bit_options: [ternary, 3bit, 4bit, fp16]
